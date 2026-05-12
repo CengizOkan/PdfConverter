@@ -89,4 +89,4 @@ class PackageConfigs(Configs):
 class PackageModel(Package):
     configs: PackageConfigs
     type: Literal["component"] = "component"
-    name: Literal["Package"] = "Package"
+    name: Literal["PdfConverter"] = "PdfConverter"
