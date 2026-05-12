@@ -1,116 +1,69 @@
-
 from pydantic import Field, validator
 from typing import List, Optional, Union, Literal
-from sdks.novavision.src.base.model import Package, Image, Inputs, Configs, Outputs, Response, Request, Output, Input, Config
+from sdks.novavision.src.base.model import Package, File, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-
-class InputImage(Input):
-    name: Literal["inputImage"] = "inputImage"
-    value: Union[List[Image], Image]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        value = values.get('value')
-        if isinstance(value, Image):
-            return "object"
-        elif isinstance(value, list):
-            return "list"
-
-    class Config:
-        title = "Image"
-
-
-class OutputImage(Output):
-    name: Literal["outputImage"] = "outputImage"
-    value: Union[List[Image],Image]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        value = values.get('value')
-        if isinstance(value, Image):
-            return "object"
-        elif isinstance(value, list):
-            return "list"
-
-    class Config:
-        title = "Image"
-
-
-class KeepSideFalse(Config):
-    name: Literal["False"] = "False"
-    value: Literal[False] = False
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
-
-    class Config:
-        title = "Disable"
-
-
-class KeepSideTrue(Config):
-    name: Literal["True"] = "True"
-    value: Literal[True] = True
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
-
-    class Config:
-        title = "Enable"
-
-
-class KeepSideBBox(Config):
-    """
-        Rotate image without catting off sides.
-    """
-    name: Literal["KeepSide"] = "KeepSide"
-    value: Union[KeepSideTrue, KeepSideFalse]
-    type: Literal["object"] = "object"
-    field: Literal["dropdownlist"] = "dropdownlist"
-
-    class Config:
-        title = "Keep Sides"
-
-
-class Degree(Config):
-    """
-        Positive angles specify counterclockwise rotation while negative angles indicate clockwise rotation.
-    """
-    name: Literal["Degree"] = "Degree"
-    value: int = Field(ge=-359.0, le=359.0,default=0)
+# --- Yeni Dosya Seçici Konfigürasyonu ---
+class ConfigInputFile(Config):
+    name: Literal["ConfigInputFile"] = "ConfigInputFile"
+    value: int  # filePicker sistemden dosya ID'si döndürür
     type: Literal["number"] = "number"
-    field: Literal["textInput"] = "textInput"
-    placeHolder: Literal["[-359, 359]"] = "[-359, 359]"
+    field: Literal["filePicker"] = "filePicker"
+    restart: Literal[True] = True
+    
+    class Config:
+        json_schema_extra = {
+            "shortDescription": "Dönüştürülecek Dosya",
+            "class": "portalium\\storage\\widgets\\FilePicker",
+            "options": {
+                "multiple": 0,
+                "returnAttribute": ["name"],
+                "name": "app::logo_wide",
+                # SADECE BU UZANTILARA İZİN VERİLİR
+                "fileExtensions": ["txt", "doc", "docx", "jpg", "jpeg", "png"] 
+            },
+        }
+        title = "Dosya Yükle"
+
+# --- Output Sınıfları (Aynı Kalıyor) ---
+class OutputFile(Output):
+    name: Literal["outputFile"] = "outputFile"
+    value: Optional[File] = None
+    type: Literal["File"] = "File"
 
     class Config:
-        title = "Angle"
+        title = "Converted PDF File"
 
+class OutputMessage(Output):
+    name: Literal["outputMessage"] = "outputMessage"
+    value: dict
+    type: str = "object"
 
-class PackageInputs(Inputs):
-    inputImage: InputImage
+    class Config:
+        title = "Status Message"
 
+# --- Executor Input/Config/Output ---
+class ExecutorInputs(Inputs):
+    pass # Artık dosya Configs'den gelecek, burası boş kalabilir
 
-class PackageConfigs(Configs):
-    degree: Degree
-    drawBBox: KeepSideBBox
+class ExecutorConfigs(Configs):
+    configInputFile: ConfigInputFile # filePicker'ı config içine ekledik
 
+class ExecutorOutputs(Outputs):
+    outputFile: OutputFile
+    outputMessage: OutputMessage
 
-class PackageOutputs(Outputs):
-    outputImage: OutputImage
-
-
+# --- Request, Response, Executor, Package Modelleri (Öncekiyle Aynı) ---
 class PackageRequest(Request):
-    inputs: Optional[PackageInputs]
-    configs: PackageConfigs
+    inputs: Optional[ExecutorInputs]
+    configs: ExecutorConfigs
 
     class Config:
         json_schema_extra = {
             "target": "configs"
         }
 
-
 class PackageResponse(Response):
-    outputs: PackageOutputs
-
+    outputs: ExecutorOutputs
 
 class PackageExecutor(Config):
     name: Literal["Package"] = "Package"
@@ -120,12 +73,7 @@ class PackageExecutor(Config):
 
     class Config:
         title = "Package"
-        json_schema_extra = {
-            "target": {
-                "value": 0
-            }
-        }
-
+        json_schema_extra = {"target": {"value": 0}}
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
@@ -135,14 +83,10 @@ class ConfigExecutor(Config):
 
     class Config:
         title = "Task"
-        json_schema_extra = {
-            "target": "value"
-        }
-
+        json_schema_extra = {"target": "value"}
 
 class PackageConfigs(Configs):
     executor: ConfigExecutor
-
 
 class PackageModel(Package):
     configs: PackageConfigs
