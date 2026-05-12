@@ -57,7 +57,7 @@ class PackageResponse(Response):
 
 # --- 5. Executor ve Config Tanımları ---
 class PackageExecutor(Config):
-    name: Literal["Package"] = "Package"
+    name: Literal["PdfConverter"] = "PdfConverter"
     value: Union[PackageRequest, PackageResponse]
     type: Literal["object"] = "object"
     field: Literal["option"] = "option"
