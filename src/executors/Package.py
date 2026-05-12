@@ -70,6 +70,7 @@ class Package(Component):
         return output_path
 
     def run(self):
+        print("messi")
         try:
             if not self.input_file_id:
                 raise ValueError("Dosya secilmedi.")
