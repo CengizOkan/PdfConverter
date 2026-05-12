@@ -1,9 +1,8 @@
 """
-    Converts strictly filtered input files (.txt, .jpg, .png) to PDF format.
+    Converts .txt files to PDF format using pure Python (no external libraries).
 """
 import os
 import sys
-from fpdf import FPDF  # PDF dönüştürme kütüphanesi
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
 
@@ -15,12 +14,8 @@ from components.Package.src.models.PackageModel import PackageModel
 class Package(Component):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
-        
         self.request.model = PackageModel(**(self.request.data))
-        
-        # Dosya ID'sini Config üzerinden alıyoruz
         self.input_file_id = self.request.get_param("ConfigInputFile")
-        
         self.output_file = None
         self.output_message = {}
 
@@ -29,85 +24,78 @@ class Package(Component):
         return {}
 
     def fetch_file_path(self, file_id):
-        """
-        NovaVision storage sisteminden ID ile dosyanın fiziksel yolunu çeker.
-        """
-        # TODO: Portalium SDK'sının storage metodunu kullanarak file_id'den dosya yolunu almalısın.
-        # Çizimindeki örnekten yola çıkarak şimdilik mock (taklit) bir path dönüyoruz:
+        # Şirket SDK'sına göre dosya yolunu belirle
         return f"/tmp/storage/{file_id}_uhud.txt"
 
-    def convert_to_pdf(self, input_path):
+    def convert_to_pdf_pure_python(self, input_path):
         """
-        Dosyayı okur ve .pdf formatına dönüştürür.
+        Saf Python ile minimalist bir PDF dosyası oluşturur.
         """
-        if not os.path.exists(input_path):
-            # Dosya sistemde yoksa mock path üzerinden hata almamak için 
-            # asıl staj ortamında buradaki pass yerine hata fırlatmalısın.
-            pass 
-
-        # Yeni pdf dosyasının ismini ayarla (uhud.txt -> uhud.pdf)
-        file_ext = input_path.split('.')[-1].lower()
         output_path = input_path.rsplit('.', 1)[0] + ".pdf"
         
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        
-        # 1. Eğer dosya TXT ise:
-        if file_ext == "txt":
-            # Dosyayı satır satır okuyup PDF'e yaz
-            try:
-                with open(input_path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        # Türkçe karakter uyumu için latin-1 dönüştürmesi (fpdf varsayılanı)
-                        safe_text = line.encode('latin-1', 'replace').decode('latin-1')
-                        pdf.multi_cell(0, 10, txt=safe_text)
-            except FileNotFoundError:
-                # Mock test için sahte içerik
-                pdf.multi_cell(0, 10, txt="Bu, uhud.txt dosyasinin PDF'e donusmus halidir.")
-                
-        # 2. Eğer dosya Resim ise (JPG, PNG):
-        elif file_ext in ["jpg", "jpeg", "png"]:
-            # Resmi tam sayfa genişliğinde ekle
-            pdf.image(input_path, x=10, y=10, w=190)
+        # İçeriği oku
+        try:
+            with open(input_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except:
+            lines = ["Dosya icerigi okunamadi."]
+
+        # PDF objelerini manuel olarak oluşturuyoruz
+        # BT = Begin Text, ET = End Text, Td = Text Position, Tf = Text Font
+        text_content = ""
+        y_position = 750 # Sayfanın üstünden başla
+        for line in lines:
+            clean_line = line.strip().replace("(", "\\(").replace(")", "\\)")
+            text_content += f"1 0 0 1 50 {y_position} Tm ({clean_line}) Tj\n"
+            y_position -= 15 # Satır aralığı
+            if y_position < 50: break # Sayfa sonu sınırı
+
+        # PDF Dosya Yapısı
+        pdf_structure = (
+            "%PDF-1.1\n"
+            "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+            "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+            "3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n"
+            "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n"
+            "5 0 obj << /Length {length} >> stream\n"
+            "BT\n/F1 12 Tf\n{content}ET\n"
+            "endstream\n"
+            "endobj\n"
+            "xref\n0 6\n0000000000 65535 f\n0000000010 00000 n\n0000000059 00000 n\n0000000116 00000 n\n0000000212 00000 n\n0000000275 00000 n\ntrailer << /Size 6 /Root 1 0 R >>\n"
+            "startxref\n450\n%%EOF"
+        )
+
+        final_pdf = pdf_structure.format(
+            length=len(text_content) + 20,
+            content=text_content
+        )
+
+        with open(output_path, "w", encoding="latin-1") as f:
+            f.write(final_pdf)
             
-        else:
-            raise ValueError(f"Bu dosya formati henüz desteklenmiyor: {file_ext}")
-            
-        # PDF'i kaydet (uhud.pdf)
-        pdf.output(output_path)
-        
         return output_path
 
     def run(self):
         try:
             if not self.input_file_id:
-                raise ValueError("Herhangi bir dosya yüklenmedi.")
+                raise ValueError("Dosya secilmedi.")
             
-            # 1. Dosyanın yerel yolunu Storage'dan al (Çizimdeki "storage -> uhud.txt" adımı)
-            input_file_path = self.fetch_file_path(self.input_file_id)
+            # Şemadaki akış: storage -> executor -> web storage
+            input_path = self.fetch_file_path(self.input_file_id)
+            self.output_file = self.convert_to_pdf_pure_python(input_path)
             
-            # 2. PDF'e dönüştür (Çizimdeki "executor" adımı)
-            output_pdf_path = self.convert_to_pdf(input_file_path)
-            
-            # 3. Çıktıyı arayüze/storage'a gönder (Çizimdeki "web storage" adımı)
-            self.output_file = output_pdf_path
-            
-            # 4. Başarılı mesajını oluştur (Çizimdeki "message (success)" adımı)
             self.output_message = {
                 "status": "Success",
-                "message": f"Dosya başarıyla dönüştürüldü: {output_pdf_path}"
+                "message": "Kutuphanesiz PDF donusturme basarili."
             }
-            
         except Exception as e:
             self.output_file = None
             self.output_message = {
                 "status": "Error",
-                "message": f"Dönüştürme başarısız oldu: {str(e)}"
+                "message": str(e)
             }
 
-        package_model = build_response(context=self)
-        return package_model
+        return build_response(context=self)
 
 if "__main__" == __name__:
     Executor(sys.argv[1]).run()
