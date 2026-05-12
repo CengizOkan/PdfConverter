@@ -1,5 +1,5 @@
 """
-    Converts .txt files to PDF format using pure Python (no external libraries).
+    Converts .txt files to PDF format silently in the background using pure Python.
 """
 import os
 import sys
@@ -15,8 +15,8 @@ class Package(Component):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**(self.request.data))
+        
         self.input_file_id = self.request.get_param("ConfigInputFile")
-        self.output_file = None
         self.output_message = {}
 
     @staticmethod
@@ -24,33 +24,27 @@ class Package(Component):
         return {}
 
     def fetch_file_path(self, file_id):
-        # Şirket SDK'sına göre dosya yolunu belirle
+        # TODO: Staj ortamında NovaVision / Portalium'un gerçek storage yolunu buraya ekle
         return f"/tmp/storage/{file_id}_uhud.txt"
 
     def convert_to_pdf_pure_python(self, input_path):
-        """
-        Saf Python ile minimalist bir PDF dosyası oluşturur.
-        """
+        """Kütüphanesiz Minimalist PDF Üretici"""
         output_path = input_path.rsplit('.', 1)[0] + ".pdf"
         
-        # İçeriği oku
         try:
             with open(input_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
-        except:
-            lines = ["Dosya icerigi okunamadi."]
+        except Exception:
+            lines = ["Dosya okunamadi."]
 
-        # PDF objelerini manuel olarak oluşturuyoruz
-        # BT = Begin Text, ET = End Text, Td = Text Position, Tf = Text Font
         text_content = ""
-        y_position = 750 # Sayfanın üstünden başla
+        y_position = 750
         for line in lines:
             clean_line = line.strip().replace("(", "\\(").replace(")", "\\)")
             text_content += f"1 0 0 1 50 {y_position} Tm ({clean_line}) Tj\n"
-            y_position -= 15 # Satır aralığı
-            if y_position < 50: break # Sayfa sonu sınırı
+            y_position -= 15
+            if y_position < 50: break
 
-        # PDF Dosya Yapısı
         pdf_structure = (
             "%PDF-1.1\n"
             "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
@@ -80,19 +74,21 @@ class Package(Component):
             if not self.input_file_id:
                 raise ValueError("Dosya secilmedi.")
             
-            # Şemadaki akış: storage -> executor -> web storage
+            # 1. Dosyayı bul
             input_path = self.fetch_file_path(self.input_file_id)
-            self.output_file = self.convert_to_pdf_pure_python(input_path)
             
+            # 2. Arka planda dönüştür (Çizimindeki web storage tarafı burada bitiyor)
+            pdf_path = self.convert_to_pdf_pure_python(input_path)
+            
+            # 3. Akışa (Flow'a) sadece mesaj ver
             self.output_message = {
                 "status": "Success",
-                "message": "Kutuphanesiz PDF donusturme basarili."
+                "message": f"Dosya başarıyla PDF'e dönüştürüldü (Arka plan dizini: {pdf_path})"
             }
         except Exception as e:
-            self.output_file = None
             self.output_message = {
                 "status": "Error",
-                "message": str(e)
+                "message": f"Hata oluştu: {str(e)}"
             }
 
         return build_response(context=self)

@@ -1,38 +1,29 @@
-from pydantic import Field, validator
-from typing import List, Optional, Union, Literal
-from sdks.novavision.src.base.model import Package, File, Inputs, Configs, Outputs, Response, Request, Output, Config
+from pydantic import validator
+from typing import Optional, Union, Literal
+from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- Yeni Dosya Seçici Konfigürasyonu ---
+# --- 1. Girdi (Config üzerinden FilePicker ile) ---
 class ConfigInputFile(Config):
     name: Literal["ConfigInputFile"] = "ConfigInputFile"
-    value: int  # filePicker sistemden dosya ID'si döndürür
+    value: int
     type: Literal["number"] = "number"
     field: Literal["filePicker"] = "filePicker"
     restart: Literal[True] = True
     
     class Config:
         json_schema_extra = {
-            "shortDescription": "Dönüştürülecek Dosya",
+            "shortDescription": "Dönüştürülecek Txt Dosyası",
             "class": "portalium\\storage\\widgets\\FilePicker",
             "options": {
                 "multiple": 0,
                 "returnAttribute": ["name"],
                 "name": "app::logo_wide",
-                # SADECE BU UZANTILARA İZİN VERİLİR
-                "fileExtensions": ["txt", "doc", "docx", "jpg", "jpeg", "png"] 
+                "fileExtensions": ["txt"] # Şimdilik sadece txt
             },
         }
         title = "Dosya Yükle"
 
-# --- Output Sınıfları (Aynı Kalıyor) ---
-class OutputFile(Output):
-    name: Literal["outputFile"] = "outputFile"
-    value: Optional[File] = None
-    type: Literal["File"] = "File"
-
-    class Config:
-        title = "Converted PDF File"
-
+# --- 2. Çıktı (Sadece Mesaj) ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict
@@ -41,18 +32,17 @@ class OutputMessage(Output):
     class Config:
         title = "Status Message"
 
-# --- Executor Input/Config/Output ---
+# --- 3. Executor Input/Config/Output Toplayıcıları ---
 class ExecutorInputs(Inputs):
-    pass # Artık dosya Configs'den gelecek, burası boş kalabilir
+    pass # Boş bıraktık çünkü girdiyi Configs'ten alıyoruz
 
 class ExecutorConfigs(Configs):
-    configInputFile: ConfigInputFile # filePicker'ı config içine ekledik
+    configInputFile: ConfigInputFile
 
 class ExecutorOutputs(Outputs):
-    outputFile: OutputFile
-    outputMessage: OutputMessage
+    outputMessage: OutputMessage # Flow'da görünecek TEK çıkış noktası
 
-# --- Request, Response, Executor, Package Modelleri (Öncekiyle Aynı) ---
+# --- 4. Request ve Response ---
 class PackageRequest(Request):
     inputs: Optional[ExecutorInputs]
     configs: ExecutorConfigs
@@ -65,6 +55,7 @@ class PackageRequest(Request):
 class PackageResponse(Response):
     outputs: ExecutorOutputs
 
+# --- 5. Executor ve Config Tanımları ---
 class PackageExecutor(Config):
     name: Literal["Package"] = "Package"
     value: Union[PackageRequest, PackageResponse]
@@ -73,7 +64,11 @@ class PackageExecutor(Config):
 
     class Config:
         title = "Package"
-        json_schema_extra = {"target": {"value": 0}}
+        json_schema_extra = {
+            "target": {
+                "value": 0
+            }
+        }
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
@@ -83,11 +78,14 @@ class ConfigExecutor(Config):
 
     class Config:
         title = "Task"
-        json_schema_extra = {"target": "value"}
+        json_schema_extra = {
+            "target": "value"
+        }
 
 class PackageConfigs(Configs):
     executor: ConfigExecutor
 
+# --- 6. Ana Package Model ---
 class PackageModel(Package):
     configs: PackageConfigs
     type: Literal["component"] = "component"
