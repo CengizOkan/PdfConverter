@@ -1,6 +1,7 @@
 from typing import Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
+# Data Feed'den gelen dosya yolunu karşılayan giriş
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: str 
