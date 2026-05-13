@@ -1,14 +1,11 @@
 from typing import Optional, Union, Literal
-# Hata veren Input importunu sildim, Config kullanıyoruz
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- Girdi (Data Feed'den Gelecek) ---
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: str 
     type: str = "string"
 
-# --- Çıktı (Sadece Durum Mesajı) ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict
@@ -19,7 +16,6 @@ class OutputMessage(Output):
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
-# Pydantic hata vermesin diye boş sınıfı geri getirdik
 class ExecutorConfigs(Configs):
     pass 
 

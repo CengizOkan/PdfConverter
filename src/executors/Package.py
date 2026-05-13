@@ -14,7 +14,6 @@ class Package(Component):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**(self.request.data))
         
-        # Yeniden Flow'dan dosya gelmesini bekleyen yapıya dönüyoruz
         try:
             self.input_file_path = self.request.model.configs.executor.value.inputs.inputFile.value
         except AttributeError:
@@ -28,7 +27,6 @@ class Package(Component):
 
     def text_to_pdf(self, input_path, output_path):
         """ .txt veya .csv gibi düz metinleri çevirir """
-        # Not: Sisteme fpdf kurulduğunda buralar fpdf kodlarıyla güncellenebilir
         with open(input_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             
@@ -55,17 +53,15 @@ class Package(Component):
     def image_to_pdf(self, input_path, output_path):
         """ .jpg, .png gibi görselleri çevirir """
         try:
-            # Pillow (PIL) kütüphanesi gerektirir
             from PIL import Image
             image = Image.open(input_path)
             pdf_bytes = image.convert('RGB')
             pdf_bytes.save(output_path)
         except ImportError:
-            raise ImportError("Gorselleri cevirmek icin Docker icine 'Pillow' kütüphanesi kurulmali! (pip install Pillow)")
+            raise ImportError("Gorselleri cevirmek icin sisteme 'Pillow' kütüphanesi kurulmali! (pip install Pillow)")
 
     def office_to_pdf(self, input_path, output_path):
         """ .docx, .xlsx gibi Office belgelerini çevirir """
-        # Linux sistemlerinde Office dosyalarını çevirmenin endüstri standardı LibreOffice kullanmaktır.
         import subprocess
         try:
             hedef_klasor = os.path.dirname(output_path)
@@ -78,28 +74,23 @@ class Package(Component):
             if not self.input_file_path or not os.path.exists(self.input_file_path):
                 raise ValueError(f"Gelen dosya yolu bulunamadi veya baglanmadi: {self.input_file_path}")
 
-            # Dosyanın ismini ve uzantısını ayırıyoruz (Örn: "rapor.docx" -> uzantı: "docx")
             dosya_adi = os.path.basename(self.input_file_path)
             uzanti = dosya_adi.split('.')[-1].lower()
             
-            # Kaydedilecek yeri belirliyoruz
+            # Kaydedilecek dizin
             hedef_klasor = "/home/cengizokan/Downloads/"
             zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = os.path.join(hedef_klasor, f"{dosya_adi}_{zaman_damgasi}.pdf")
 
-            # --- TRAFİK POLİSİ MANTIĞI ---
+            # Dosya uzantısına göre yönlendirme
             if uzanti in ['txt', 'csv']:
                 self.text_to_pdf(self.input_file_path, output_path)
-                
             elif uzanti in ['jpg', 'jpeg', 'png']:
                 self.image_to_pdf(self.input_file_path, output_path)
-                
             elif uzanti in ['doc', 'docx', 'xls', 'xlsx']:
                 self.office_to_pdf(self.input_file_path, output_path)
-                
             else:
                 raise ValueError(f"Sistem henuz bu dosya uzantisini desteklemiyor: .{uzanti}")
-            # -----------------------------
 
             self.output_message = {
                 "status": "Success",
