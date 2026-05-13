@@ -1,8 +1,9 @@
 from typing import Optional, Union, Literal
-from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config, Input
+# Hata veren Input importunu sildim, Config kullanıyoruz
+from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
 # --- Girdi (Data Feed'den Gelecek) ---
-class InputFile(Input):
+class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: str 
     type: str = "string"
@@ -18,12 +19,16 @@ class OutputMessage(Output):
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
+# Pydantic hata vermesin diye boş sınıfı geri getirdik
+class ExecutorConfigs(Configs):
+    pass 
+
 class ExecutorOutputs(Outputs):
-    outputMessage: OutputMessage # Sağ tarafta sadece mesaj ucu olacak
+    outputMessage: OutputMessage
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: Optional[Configs]
+    configs: Optional[ExecutorConfigs]
     class Config:
         json_schema_extra = {"target": "inputs"}
 
@@ -37,12 +42,16 @@ class PackageExecutor(Config):
     field: Literal["option"] = "option"
     class Config:
         title = "Package"
+        json_schema_extra = {"target": {"value": 0}}
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
     value: Union[PackageExecutor]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
+    class Config:
+        title = "Task"
+        json_schema_extra = {"target": "value"}
 
 class PackageConfigs(Configs):
     executor: ConfigExecutor
