@@ -1,62 +1,48 @@
 from typing import Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config, Input
 
-# --- 1. Girdi (Data Feed'den Gelecek) ---
+# --- Girdi (Data Feed'den Gelecek) ---
 class InputFile(Input):
     name: Literal["inputFile"] = "inputFile"
     value: str 
     type: str = "string"
 
-# --- 2. Çıktı (Artık Mesaj Değil, Dosya) ---
-class OutputFile(Output):
-    name: Literal["outputFile"] = "outputFile"
-    value: str # PDF'in dosya yolunu tutacak
-    type: str = "string"
-
+# --- Çıktı (Sadece Durum Mesajı) ---
+class OutputMessage(Output):
+    name: Literal["outputMessage"] = "outputMessage"
+    value: dict
+    type: str = "object"
     class Config:
-        title = "Output PDF File"
+        title = "Status Message"
 
-# --- 3. Executor Bağlantıları ---
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
-class ExecutorConfigs(Configs):
-    pass
-
 class ExecutorOutputs(Outputs):
-    outputFile: OutputFile # Flow'da File Save'e bağlanacak uç burası
+    outputMessage: OutputMessage # Sağ tarafta sadece mesaj ucu olacak
 
-# --- 4. Request ve Response ---
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: Optional[ExecutorConfigs]
-
+    configs: Optional[Configs]
     class Config:
         json_schema_extra = {"target": "inputs"}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
 
-# --- 5. Executor Tanımları ---
 class PackageExecutor(Config):
     name: Literal["PdfConverter"] = "PdfConverter"
     value: Union[PackageRequest, PackageResponse]
     type: Literal["object"] = "object"
     field: Literal["option"] = "option"
-
     class Config:
         title = "Package"
-        json_schema_extra = {"target": {"value": 0}}
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
     value: Union[PackageExecutor]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
-
-    class Config:
-        title = "Task"
-        json_schema_extra = {"target": "value"}
 
 class PackageConfigs(Configs):
     executor: ConfigExecutor

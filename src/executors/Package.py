@@ -1,6 +1,7 @@
 import os
 import sys
 from fpdf import FPDF 
+from datetime import datetime # Zaman damgası için
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
 
@@ -19,17 +20,23 @@ class Package(Component):
         except AttributeError:
             self.input_file_path = None
             
-        self.output_file = "" # Artık mesaj yerine dosyayı tutuyoruz
-
-    @staticmethod
-    def bootstrap(config: dict) -> dict:
-        return {}
+        self.output_message = {}
 
     def convert_to_pdf_with_library(self, input_path):
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Gelen dosya yolu bulunamadı: {input_path}")
             
-        output_path = input_path.rsplit('.', 1)[0] + ".pdf"
+        # --- DOĞRUDAN KAYIT MANTIĞI ---
+        # Görseldeki ayarlara göre hedef klasör ve dosya adını belirliyoruz
+        hedef_klasor = "/home/cengizokan/Downloads/"
+        temel_isim = "messi"
+        
+        # Zaman damgası ekle (Görseldeki Filename Suffix: Time Stamp ayarı gibi)
+        zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dosya_adi = f"{temel_isim}_{zaman_damgasi}.pdf"
+        
+        output_path = os.path.join(hedef_klasor, dosya_adi)
+        # -----------------------------
         
         pdf = FPDF()
         pdf.add_page()
@@ -40,23 +47,23 @@ class Package(Component):
                 safe_text = line.encode('latin-1', 'replace').decode('latin-1')
                 pdf.multi_cell(0, 10, txt=safe_text)
                 
+        # Dosyayı doğrudan Downloads klasörüne kaydet
         pdf.output(output_path)
         return output_path
 
     def run(self):
-        print("\n=== PDF CONVERTER CALISIYOR ===")
         try:
             if not self.input_file_path:
-                raise ValueError("Flow üzerinden girdi gelmedi.")
+                raise ValueError("Girdi dosyası bulunamadı.")
             
-            # PDF'i oluştur ve yolunu değişkene ata
             pdf_path = self.convert_to_pdf_with_library(self.input_file_path)
-            self.output_file = pdf_path 
-            print(f"PDF uretildi: {pdf_path}")
             
+            self.output_message = {
+                "status": "Success",
+                "message": f"PDF başarıyla oluşturuldu ve şuraya kaydedildi: {pdf_path}"
+            }
         except Exception as e:
-            print(f"HATA: {str(e)}")
-            self.output_file = ""
+            self.output_message = {"status": "Error", "message": str(e)}
 
         return build_response(context=self)
 
