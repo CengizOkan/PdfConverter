@@ -98,7 +98,8 @@ class Package(Component):
             }
         except Exception as e:
             self.output_message = {"status": "Error", "message": str(e)}
-
+        
+        print("\n🦅 PDF CONVERTER SONUCU:", self.output_message, "\n", flush=True)
         return build_response(context=self)
 
 if "__main__" == __name__:
