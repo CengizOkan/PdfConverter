@@ -1,29 +1,14 @@
 from pydantic import validator
 from typing import Optional, Union, Literal
-from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
+from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config, Input
 
-# --- 1. Girdi (Config üzerinden FilePicker ile) ---
-class ConfigInputFile(Config):
-    name: Literal["ConfigInputFile"] = "ConfigInputFile"
-    value: int
-    type: Literal["number"] = "number"
-    field: Literal["filePicker"] = "filePicker"
-    restart: Literal[True] = True
-    
-    class Config:
-        json_schema_extra = {
-            "shortDescription": "Dönüştürülecek Txt Dosyası",
-            "class": "portalium\\storage\\widgets\\FilePicker",
-            "options": {
-                "multiple": 0,
-                "returnAttribute": ["name"],
-                "name": "app::logo_wide",
-                "fileExtensions": ["txt"] # Şimdilik sadece txt
-            },
-        }
-        title = "Dosya Yükle"
+# --- 1. Girdi (Artık Flow üzerinden Input olarak geliyor) ---
+class InputFile(Input):
+    name: Literal["inputFile"] = "inputFile"
+    value: str # Dışarıdan gelecek dosya yolu veya ID'si
+    type: str = "string"
 
-# --- 2. Çıktı (Sadece Mesaj) ---
+# --- 2. Çıktı (Sadece Mesaj - Aynı kalıyor) ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict
@@ -34,22 +19,22 @@ class OutputMessage(Output):
 
 # --- 3. Executor Input/Config/Output Toplayıcıları ---
 class ExecutorInputs(Inputs):
-    pass # Boş bıraktık çünkü girdiyi Configs'ten alıyoruz
+    inputFile: InputFile # Flow'da kutunun solunda görünecek GİRİŞ noktası
 
 class ExecutorConfigs(Configs):
-    configInputFile: ConfigInputFile
+    pass # Arayüzden seçilecek bir Config (FilePicker) kalmadı
 
 class ExecutorOutputs(Outputs):
-    outputMessage: OutputMessage # Flow'da görünecek TEK çıkış noktası
+    outputMessage: OutputMessage # Flow'da kutunun sağında görünecek ÇIKIŞ noktası
 
 # --- 4. Request ve Response ---
 class PackageRequest(Request):
-    inputs: Optional[ExecutorInputs]
-    configs: ExecutorConfigs
+    inputs: ExecutorInputs
+    configs: Optional[ExecutorConfigs]
 
     class Config:
         json_schema_extra = {
-            "target": "configs"
+            "target": "inputs" # Artık hedeflenen ana veri inputs içinden geliyor
         }
 
 class PackageResponse(Response):
