@@ -1,10 +1,6 @@
-"""
-    Converts files to PDF format using the 'fpdf' library.
-    Input path is received dynamically from the Flow UI.
-"""
 import os
 import sys
-from fpdf import FPDF # Kütüphane entegre edildi
+from fpdf import FPDF 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
 
@@ -18,20 +14,18 @@ class Package(Component):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**(self.request.data))
         
-        # Dosya yolunu Flow üzerinden bağlanan GİRİŞ (Input) düğümünden alıyoruz
         try:
             self.input_file_path = self.request.model.configs.executor.value.inputs.inputFile.value
         except AttributeError:
             self.input_file_path = None
             
-        self.output_message = {}
+        self.output_file = "" # Artık mesaj yerine dosyayı tutuyoruz
 
     @staticmethod
     def bootstrap(config: dict) -> dict:
         return {}
 
     def convert_to_pdf_with_library(self, input_path):
-        """fpdf kütüphanesi kullanarak PDF dönüştürme işlemi."""
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Gelen dosya yolu bulunamadı: {input_path}")
             
@@ -43,7 +37,6 @@ class Package(Component):
         
         with open(input_path, "r", encoding="utf-8") as f:
             for line in f:
-                # latin-1 encoding ile Türkçe karakter sorunlarını minimize etme
                 safe_text = line.encode('latin-1', 'replace').decode('latin-1')
                 pdf.multi_cell(0, 10, txt=safe_text)
                 
@@ -51,23 +44,19 @@ class Package(Component):
         return output_path
 
     def run(self):
-        print("\n=== PDF CONVERTER BASLADI (Kutuphaneli & Input'lu) ===")
+        print("\n=== PDF CONVERTER CALISIYOR ===")
         try:
             if not self.input_file_path:
-                raise ValueError("Flow üzerinden (sol taraftan) herhangi bir dosya yolu bağlanmadı.")
+                raise ValueError("Flow üzerinden girdi gelmedi.")
             
-            # Dönüştürme işlemini başlat
+            # PDF'i oluştur ve yolunu değişkene ata
             pdf_path = self.convert_to_pdf_with_library(self.input_file_path)
+            self.output_file = pdf_path 
+            print(f"PDF uretildi: {pdf_path}")
             
-            self.output_message = {
-                "status": "Success",
-                "message": f"Dosya fpdf ile başarıyla dönüştürüldü: {pdf_path}"
-            }
         except Exception as e:
-            self.output_message = {
-                "status": "Error",
-                "message": str(e)
-            }
+            print(f"HATA: {str(e)}")
+            self.output_file = ""
 
         return build_response(context=self)
 

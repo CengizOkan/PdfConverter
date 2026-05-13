@@ -1,31 +1,30 @@
-from pydantic import validator
 from typing import Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config, Input
 
-# --- 1. Girdi (Artık Flow üzerinden Input olarak geliyor) ---
+# --- 1. Girdi (Data Feed'den Gelecek) ---
 class InputFile(Input):
     name: Literal["inputFile"] = "inputFile"
-    value: str # Dışarıdan gelecek dosya yolu veya ID'si
+    value: str 
     type: str = "string"
 
-# --- 2. Çıktı (Sadece Mesaj - Aynı kalıyor) ---
-class OutputMessage(Output):
-    name: Literal["outputMessage"] = "outputMessage"
-    value: dict
-    type: str = "object"
+# --- 2. Çıktı (Artık Mesaj Değil, Dosya) ---
+class OutputFile(Output):
+    name: Literal["outputFile"] = "outputFile"
+    value: str # PDF'in dosya yolunu tutacak
+    type: str = "string"
 
     class Config:
-        title = "Status Message"
+        title = "Output PDF File"
 
-# --- 3. Executor Input/Config/Output Toplayıcıları ---
+# --- 3. Executor Bağlantıları ---
 class ExecutorInputs(Inputs):
-    inputFile: InputFile # Flow'da kutunun solunda görünecek GİRİŞ noktası
+    inputFile: InputFile
 
 class ExecutorConfigs(Configs):
-    pass # Arayüzden seçilecek bir Config (FilePicker) kalmadı
+    pass
 
 class ExecutorOutputs(Outputs):
-    outputMessage: OutputMessage # Flow'da kutunun sağında görünecek ÇIKIŞ noktası
+    outputFile: OutputFile # Flow'da File Save'e bağlanacak uç burası
 
 # --- 4. Request ve Response ---
 class PackageRequest(Request):
@@ -33,14 +32,12 @@ class PackageRequest(Request):
     configs: Optional[ExecutorConfigs]
 
     class Config:
-        json_schema_extra = {
-            "target": "inputs" # Artık hedeflenen ana veri inputs içinden geliyor
-        }
+        json_schema_extra = {"target": "inputs"}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
 
-# --- 5. Executor ve Config Tanımları ---
+# --- 5. Executor Tanımları ---
 class PackageExecutor(Config):
     name: Literal["PdfConverter"] = "PdfConverter"
     value: Union[PackageRequest, PackageResponse]
@@ -49,11 +46,7 @@ class PackageExecutor(Config):
 
     class Config:
         title = "Package"
-        json_schema_extra = {
-            "target": {
-                "value": 0
-            }
-        }
+        json_schema_extra = {"target": {"value": 0}}
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
@@ -63,14 +56,11 @@ class ConfigExecutor(Config):
 
     class Config:
         title = "Task"
-        json_schema_extra = {
-            "target": "value"
-        }
+        json_schema_extra = {"target": "value"}
 
 class PackageConfigs(Configs):
     executor: ConfigExecutor
 
-# --- 6. Ana Package Model ---
 class PackageModel(Package):
     configs: PackageConfigs
     type: Literal["component"] = "component"
