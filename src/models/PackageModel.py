@@ -1,18 +1,19 @@
 from typing import Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# Data Feed'den gelen dosya yolunu karşılayan giriş
+# Sol taraftan (Data Feed'den) gelecek kablo
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: str 
     type: str = "string"
 
-class OutputMessage(Output):
-    name: Literal["outputMessage"] = "outputMessage"
-    value: dict
-    type: str = "object"
+# Sağ tarafa (File Save'e) gidecek kablo
+class OutputFile(Output):
+    name: Literal["outputFile"] = "outputFile"
+    value: str = ""
+    type: str = "string"
     class Config:
-        title = "Status Message"
+        title = "Çevrilen PDF Dosyasının Yolu"
 
 class ExecutorInputs(Inputs):
     inputFile: InputFile
@@ -21,7 +22,7 @@ class ExecutorConfigs(Configs):
     pass 
 
 class ExecutorOutputs(Outputs):
-    outputMessage: OutputMessage
+    outputFile: OutputFile # Çıktı değişti
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
