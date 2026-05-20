@@ -13,7 +13,7 @@ class OutputFile(Output):
     value: str = ""
     type: str = "string"
     class Config:
-        title = "Çevrilen PDF Dosyasının Yolu"
+        title = "Converted PDF File"
 
 class ExecutorInputs(Inputs):
     inputFile: InputFile
@@ -22,7 +22,7 @@ class ExecutorConfigs(Configs):
     pass 
 
 class ExecutorOutputs(Outputs):
-    outputFile: OutputFile # Çıktı değişti
+    outputFile: OutputFile
 
 class PackageRequest(Request):
     inputs: ExecutorInputs

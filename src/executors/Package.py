@@ -20,12 +20,9 @@ class Package(Component):
         self.request.model = PackageModel(**(self.request.data))
         
         try:
-            # Data Feed'den gelen kabloyu al
             self.input_file_path = self.request.model.configs.executor.value.inputs.inputFile.value
         except AttributeError:
             self.input_file_path = None
-            
-        # File Save'e gidecek yol
         self.output_file_path = ""
 
     @staticmethod
@@ -53,14 +50,12 @@ class Package(Component):
                 raise FileNotFoundError(f"Data Feed'den dosya gelmedi: {self.input_file_path}")
 
             base_name = os.path.basename(self.input_file_path)
-            hedef_klasor = "/tmp/" # Konteyner içi güvenli geçici klasör
+            hedef_klasor = "/tmp/"
             zaman = datetime.now().strftime("%H%M%S")
             output_path = os.path.join(hedef_klasor, f"converted_{zaman}_{base_name}.pdf")
 
-            # Çevir
             self.convert_to_pdf(self.input_file_path, output_path)
             
-            # Oluşan yolu çıktı değişkenine ata
             self.output_file_path = output_path
             
             print(f"\n🦅 PDF CONVERTER BAŞARILI: {self.output_file_path}\n", flush=True)

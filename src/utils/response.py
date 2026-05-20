@@ -2,11 +2,10 @@ from sdks.novavision.src.helper.package import PackageHelper
 from components.Package.src.models.PackageModel import (
     PackageModel, PackageConfigs, ConfigExecutor, 
     ExecutorOutputs, PackageResponse, PackageExecutor, 
-    OutputFile  # İthal edilen sınıfı güncelledik
+    OutputFile
 )
 
 def build_response(context):
-    # Çıktı olarak oluşan yeni PDF dosyasının yolunu veriyoruz
     outputFile = OutputFile(value=context.output_file_path)
     outputs = ExecutorOutputs(outputFile=outputFile)
     
