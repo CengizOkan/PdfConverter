@@ -1,17 +1,18 @@
-from typing import Optional, Union, Literal
+from typing import Optional, Union, Literal, Dict, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
+# Giriş yapısını dict (object) kabul edecek şekilde güncelledik
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: str 
-    type: str = "string"
+    value: Dict[str, Any] 
+    type: str = "object"
 
 class OutputFile(Output):
     name: Literal["outputFile"] = "outputFile"
     value: str = ""
     type: str = "string"
     class Config:
-        title = "Converted PDF File"
+        title = "Çevrilen PDF Dosyasının Yolu"
 
 class ExecutorInputs(Inputs):
     inputFile: InputFile
