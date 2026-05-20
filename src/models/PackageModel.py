@@ -1,13 +1,11 @@
 from typing import Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# Sol taraftan (Data Feed'den) gelecek kablo
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: str 
     type: str = "string"
 
-# Sağ tarafa (File Save'e) gidecek kablo
 class OutputFile(Output):
     name: Literal["outputFile"] = "outputFile"
     value: str = ""
