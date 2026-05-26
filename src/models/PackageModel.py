@@ -1,21 +1,23 @@
 from typing import Optional, Union, Literal, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- 1. Sol Kablo Ucu (Giriş) ---
+# --- 1. Sol Kablo Ucu (Giriş Portu) ---
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: Any = {}  # Liste veya sözlük gelse bile çökmeyi engeller
+    value: Any = {}
     type: str = "object"
 
-# --- 2. Sağ Panel Ayarı (Klasör Yolu) ---
+# --- 2. Sağ Panel Ayarı (İŞTE EKSİK OLAN SİHİRLİ SATIR BURADA) ---
 class ConfigSavePath(Config):
     name: Literal["savePath"] = "savePath"
     value: str = "/home/cengizokan/Downloads/"
     type: str = "string"
+    # Arayüz motoruna "Buraya bir metin girme kutusu (input) çiz!" diyoruz
+    field: Literal["input"] = "input" 
     class Config:
         title = "Kaydedilecek Klasör"
 
-# --- 3. Sağ Kablo Ucu (Çıkış Durumu) ---
+# --- 3. Sağ Kablo Ucu (Çıkış Portu) ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict = {}
@@ -23,21 +25,23 @@ class OutputMessage(Output):
     class Config:
         title = "Durum Mesajı"
 
-# --- 4. Portların Zorunlu Kılınması (Kabloları Geri Getiren Kısım) ---
 class ExecutorInputs(Inputs):
-    inputFile: InputFile  # Optional ibaresi kaldırıldı, sol port geri gelecek
+    inputFile: InputFile
 
 class ExecutorConfigs(Configs):
-    savePath: ConfigSavePath
+    # Boş veri gelirse Pydantic çökmesin diye sınıfı varsayılan olarak başlatıyoruz
+    savePath: ConfigSavePath = ConfigSavePath() 
 
 class ExecutorOutputs(Outputs):
-    outputMessage: OutputMessage  # Optional ibaresi kaldırıldı, sağ port geri gelecek
+    outputMessage: OutputMessage
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: Optional[ExecutorConfigs]
+    # Optional etiketini kaldırdık ki UI motoru bunu kesinlikle okusun
+    configs: ExecutorConfigs = ExecutorConfigs() 
     class Config:
-        json_schema_extra = {"target": "configs"}
+        # Kabloların (portların) silinmemesi için target her zaman "inputs" kalmalı!
+        json_schema_extra = {"target": "inputs"}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
