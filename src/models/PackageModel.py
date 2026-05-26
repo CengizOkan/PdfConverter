@@ -1,42 +1,34 @@
 from typing import Optional, Union, Literal, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- 1. Sol Kablo Ucu ---
+# Sol Kablo (Veri Girişi)
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: Any = None  # Gelen her türlü veriyi (liste, dict) çökmeksizin kabul eder
+    value: Any = None 
     type: Literal["object"] = "object"
 
-# --- 2. Sağ Panel Ayarı ---
-class ConfigSavePath(Config):
-    name: Literal["savePath"] = "savePath"
-    value: str = "/home/cengizokan/Downloads/"
-    type: Literal["string"] = "string"
-    field: Literal["input"] = "input"  # ÇÖZÜM: Arayüze "Buraya metin kutusu çiz" dedik!
-    class Config:
-        title = "Kaydedilecek Klasör"
-
-# --- 3. Sağ Kablo Ucu ---
+# Sağ Kablo (Sonuç Mesajı)
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict = {}
     type: Literal["object"] = "object"
+    class Config:
+        title = "Durum Mesajı"
 
-# --- 4. Doğru Katmanlandırma (Backend'i Çökertmeyen Yapı) ---
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
 class ExecutorConfigs(Configs):
-    savePath: ConfigSavePath  # ÇÖZÜM: Ayar güvenli katmanda duruyor
+    pass # Sağ paneli sildik, dert bitti!
 
 class ExecutorOutputs(Outputs):
     outputMessage: OutputMessage
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: ExecutorConfigs
+    configs: Optional[ExecutorConfigs] = None
     class Config:
-        json_schema_extra = {"target": "inputs"} # Kabloların görünmesini sağlar
+        json_schema_extra = {"target": "inputs"}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs

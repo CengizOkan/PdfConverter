@@ -20,14 +20,16 @@ class Package(Component):
         
         try:
             self.request.model = PackageModel(**(self.request.data))
-        except Exception as e:
-            print(f"Model Yukleme Hatasi: {e}", flush=True)
+        except Exception:
+            pass
         
         self.input_file_path = None
-        self.save_path = "/home/cengizokan/Downloads/" # Varsayılan güvenlik yolu
+        
+        # SİHİRLİ DOKUNUŞ: Sağ panel yerine adresi buraya gömdük!
+        self.save_path = "/home/cengizokan/Downloads/"
         self.output_message = {}
 
-        # 1. Girdi verisini kablodan okuma
+        # Gelen veriyi (Dict/Liste) güvenle okuma
         try:
             if self.request.model and self.request.model.configs.executor.value.inputs:
                 incoming_data = self.request.model.configs.executor.value.inputs.inputFile.value
@@ -49,13 +51,6 @@ class Package(Component):
                                 break
                 elif isinstance(incoming_data, str):
                     self.input_file_path = incoming_data
-        except Exception:
-            pass
-            
-        # 2. Kayıt Yerini Doğrudan Ana Ayarlardan (Kök Dizinden) Okuma!
-        try:
-            if self.request.model and self.request.model.configs:
-                self.save_path = self.request.model.configs.savePath.value
         except Exception:
             pass
 
@@ -81,7 +76,7 @@ class Package(Component):
     def run(self):
         try:
             if not self.input_file_path or not os.path.exists(str(self.input_file_path)):
-                raise FileNotFoundError(f"Gecerli bir dosya yolu bulunamadi: {self.input_file_path}")
+                raise FileNotFoundError(f"Gecerli bir dosya bulunamadi: {self.input_file_path}")
 
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path, exist_ok=True)
@@ -94,7 +89,7 @@ class Package(Component):
             
             self.output_message = {
                 "status": "Success",
-                "message": f"PDF locale kaydedildi: {output_path}"
+                "message": f"PDF başarıyla locale kaydedildi: {output_path}"
             }
             print(f"\n🦅 PDF CONVERTER BAŞARILI: {output_path}\n", flush=True)
 
