@@ -1,31 +1,42 @@
 from typing import Optional, Union, Literal, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- 1. Sol Kablo (Giriş) ---
+# --- 1. Sol Kablo Ucu ---
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: Any = {}
+    value: Any = None  # Gelen her türlü veriyi (liste, dict) çökmeksizin kabul eder
     type: Literal["object"] = "object"
 
-# --- 2. Sağ Kablo (Çıkış) ---
+# --- 2. Sağ Panel Ayarı ---
+class ConfigSavePath(Config):
+    name: Literal["savePath"] = "savePath"
+    value: str = "/home/cengizokan/Downloads/"
+    type: Literal["string"] = "string"
+    field: Literal["input"] = "input"  # ÇÖZÜM: Arayüze "Buraya metin kutusu çiz" dedik!
+    class Config:
+        title = "Kaydedilecek Klasör"
+
+# --- 3. Sağ Kablo Ucu ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict = {}
     type: Literal["object"] = "object"
-    class Config:
-        title = "Durum Mesajı"
 
+# --- 4. Doğru Katmanlandırma (Backend'i Çökertmeyen Yapı) ---
 class ExecutorInputs(Inputs):
     inputFile: InputFile
+
+class ExecutorConfigs(Configs):
+    savePath: ConfigSavePath  # ÇÖZÜM: Ayar güvenli katmanda duruyor
 
 class ExecutorOutputs(Outputs):
     outputMessage: OutputMessage
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: Optional[Configs] = None # Derin bodrumu boşalttık
+    configs: ExecutorConfigs
     class Config:
-        json_schema_extra = {"target": "inputs"} # Kabloların kaybolmaması için
+        json_schema_extra = {"target": "inputs"} # Kabloların görünmesini sağlar
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
@@ -48,19 +59,8 @@ class ConfigExecutor(Config):
         title = "Task"
         json_schema_extra = {"target": "value"}
 
-# --- 3. SAĞ PANEL AYARI (YENİ VE DOĞRU YERİ) ---
-class ConfigSavePath(Config):
-    name: Literal["savePath"] = "savePath"
-    value: str = "/home/cengizokan/Downloads/"
-    type: Literal["string"] = "string"
-    field: Literal["input"] = "input"
-    class Config:
-        title = "Kaydedilecek Klasör"
-
-# Ayarı doğrudan ana Configs sınıfına (kök dizine) ekledik!
 class PackageConfigs(Configs):
     executor: ConfigExecutor
-    savePath: ConfigSavePath = ConfigSavePath() 
 
 class PackageModel(Package):
     configs: PackageConfigs
