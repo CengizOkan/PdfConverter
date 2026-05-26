@@ -37,7 +37,7 @@ class PackageRequest(Request):
     inputs: ExecutorInputs
     configs: Optional[ExecutorConfigs]
     class Config:
-        json_schema_extra = {"target": "inputs"}
+        json_schema_extra = {"target": "configs"}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
