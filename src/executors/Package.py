@@ -17,48 +17,52 @@ except ImportError:
 class Package(Component):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
-        self.request.model = PackageModel(**(self.request.data))
+        
+        # Pydantic çökmelerini engellemek için try-except bloğu
+        try:
+            self.request.model = PackageModel(**(self.request.data))
+        except Exception as e:
+            print(f"Model Yükleme Hatası: {e}", flush=True)
         
         self.input_file_path = None
-        try:
-            incoming_data = self.request.model.configs.executor.value.inputs.inputFile.value
-            
-            # 1. KALKAN: Veri Liste İse (DataFeed birden fazla dosya desteklediği için liste atıyor olabilir)
-            if isinstance(incoming_data, list) and len(incoming_data) > 0:
-                incoming_data = incoming_data[0] # İlk elemanı al
-                
-            # 2. KALKAN: Veri Sözlük (dict) İse (İçindeki yolu ayıkla)
-            if isinstance(incoming_data, dict):
-                self.input_file_path = (
-                    incoming_data.get("filePath") or 
-                    incoming_data.get("path") or 
-                    incoming_data.get("absolutePath") or 
-                    incoming_data.get("value")
-                )
-                # Anahtar uyuşmazsa "değeri" string olan ilk değişkeni kap
-                if not self.input_file_path:
-                    for val in incoming_data.values():
-                        if isinstance(val, str) and (val.startswith("/") or val.startswith("C:\\")):
-                            self.input_file_path = val
-                            break
-                            
-            # 3. KALKAN: Veri doğrudan string İse
-            elif isinstance(incoming_data, str):
-                self.input_file_path = incoming_data
-                
-        except Exception:
-            self.input_file_path = None
-            
-        # Sağ panelden kayıt yerini (savePath) al
-        try:
-            if self.request.model.configs.executor.value.configs:
-                self.save_path = self.request.model.configs.executor.value.configs.savePath.value
-            else:
-                self.save_path = "/home/cengizokan/Downloads/"
-        except Exception:
-            self.save_path = "/home/cengizokan/Downloads/"
-            
+        self.save_path = "/home/cengizokan/Downloads/"
         self.output_message = {}
+
+        # 1. Girdi verisini güvenle okuma
+        try:
+            if self.request.model and self.request.model.configs.executor.value.inputs:
+                incoming_data = self.request.model.configs.executor.value.inputs.inputFile.value
+                
+                # Liste formatındaysa
+                if isinstance(incoming_data, list) and len(incoming_data) > 0:
+                    incoming_data = incoming_data[0]
+                    
+                # Sözlük formatındaysa
+                if isinstance(incoming_data, dict):
+                    self.input_file_path = (
+                        incoming_data.get("filePath") or 
+                        incoming_data.get("path") or 
+                        incoming_data.get("absolutePath") or 
+                        incoming_data.get("value")
+                    )
+                    if not self.input_file_path:
+                        for val in incoming_data.values():
+                            if isinstance(val, str) and (val.startswith("/") or val.startswith("C:\\")):
+                                self.input_file_path = val
+                                break
+                # String formatındaysa
+                elif isinstance(incoming_data, str):
+                    self.input_file_path = incoming_data
+        except Exception:
+            pass
+            
+        # 2. Kayıt yerini güvenle okuma
+        try:
+            if self.request.model and self.request.model.configs.executor.value.configs:
+                if self.request.model.configs.executor.value.configs.savePath:
+                    self.save_path = self.request.model.configs.executor.value.configs.savePath.value
+        except Exception:
+            pass
 
     @staticmethod
     def bootstrap(config: dict) -> dict:
@@ -66,7 +70,7 @@ class Package(Component):
 
     def convert_to_pdf(self, input_path, output_path):
         if FPDF is None:
-            raise ImportError("Sistemde 'fpdf2' kurulu degil! (Lutfen 'pip install fpdf2' calistirin)")
+            raise ImportError("Sistemde 'fpdf2' kurulu degil!")
 
         pdf = FPDF()
         pdf.add_page()
@@ -82,7 +86,7 @@ class Package(Component):
     def run(self):
         try:
             if not self.input_file_path or not os.path.exists(str(self.input_file_path)):
-                raise FileNotFoundError(f"Kablodan gelen veriden dosya yolu cikarilamadi veya dosya yok: {self.input_file_path}")
+                raise FileNotFoundError(f"Geçerli bir dosya yolu bulunamadı: {self.input_file_path}")
 
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path, exist_ok=True)
