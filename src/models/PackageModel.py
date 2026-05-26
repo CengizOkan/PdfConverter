@@ -1,13 +1,12 @@
-from typing import Optional, Union, Literal, Dict, Any
+from typing import Optional, Union, Literal, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# --- 1. Kablodan Gelecek Girdi ---
+# Gelen veri liste, dict veya str olabilir. Katı kuralı kaldırdık (Any).
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: Dict[str, Any] 
+    value: Any 
     type: str = "object"
 
-# --- 2. Sağ Panelde Görünecek Ayar (YENİ DEĞİŞİKLİK) ---
 class ConfigSavePath(Config):
     name: Literal["savePath"] = "savePath"
     value: str = "/home/cengizokan/Downloads/"
@@ -15,7 +14,6 @@ class ConfigSavePath(Config):
     class Config:
         title = "Kaydedilecek Klasör"
 
-# --- 3. İşlem Sonucu Çıktısı ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict
@@ -23,7 +21,6 @@ class OutputMessage(Output):
     class Config:
         title = "Durum Mesajı"
 
-# --- 4. Container'lar ---
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
@@ -33,18 +30,16 @@ class ExecutorConfigs(Configs):
 class ExecutorOutputs(Outputs):
     outputMessage: OutputMessage
 
-# --- 5. Request ve Response (KİLİT NOKTA) ---
 class PackageRequest(Request):
     inputs: ExecutorInputs
-    configs: ExecutorConfigs # Optional'ı kaldırdık, kesinlikle istiyoruz
+    configs: Optional[ExecutorConfigs] = None # Arayüz henüz kaydedilmemişse çökmeyi önler
     class Config:
-        # ŞİFRE BURADA: UI motoruna hem sol kabloyu (inputs) hem de sağ paneli (configs) çizdiriyoruz!
+        # UI'a hem sol kabloyu hem sağ ayar panelini çizdiriyoruz
         json_schema_extra = {"target": ["inputs", "configs"]}
 
 class PackageResponse(Response):
     outputs: ExecutorOutputs
 
-# --- 6. Ana Executor Bağlantıları ---
 class PackageExecutor(Config):
     name: Literal["PdfConverter"] = "PdfConverter"
     value: Union[PackageRequest, PackageResponse]

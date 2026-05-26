@@ -19,10 +19,15 @@ class Package(Component):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**(self.request.data))
         
-        # 1. Gelen dict verisinden girdi yolunu ayıkla
         self.input_file_path = None
         try:
             incoming_data = self.request.model.configs.executor.value.inputs.inputFile.value
+            
+            # 1. KALKAN: Veri Liste İse (DataFeed birden fazla dosya desteklediği için liste atıyor olabilir)
+            if isinstance(incoming_data, list) and len(incoming_data) > 0:
+                incoming_data = incoming_data[0] # İlk elemanı al
+                
+            # 2. KALKAN: Veri Sözlük (dict) İse (İçindeki yolu ayıkla)
             if isinstance(incoming_data, dict):
                 self.input_file_path = (
                     incoming_data.get("filePath") or 
@@ -30,20 +35,27 @@ class Package(Component):
                     incoming_data.get("absolutePath") or 
                     incoming_data.get("value")
                 )
+                # Anahtar uyuşmazsa "değeri" string olan ilk değişkeni kap
                 if not self.input_file_path:
                     for val in incoming_data.values():
-                        if isinstance(val, str) and os.path.isabs(val):
+                        if isinstance(val, str) and (val.startswith("/") or val.startswith("C:\\")):
                             self.input_file_path = val
                             break
-            else:
+                            
+            # 3. KALKAN: Veri doğrudan string İse
+            elif isinstance(incoming_data, str):
                 self.input_file_path = incoming_data
-        except AttributeError:
+                
+        except Exception:
             self.input_file_path = None
             
-        # 2. Sağ panelden kayıt yerini (savePath) al
+        # Sağ panelden kayıt yerini (savePath) al
         try:
-            self.save_path = self.request.model.configs.executor.value.configs.savePath.value
-        except AttributeError:
+            if self.request.model.configs.executor.value.configs:
+                self.save_path = self.request.model.configs.executor.value.configs.savePath.value
+            else:
+                self.save_path = "/home/cengizokan/Downloads/"
+        except Exception:
             self.save_path = "/home/cengizokan/Downloads/"
             
         self.output_message = {}
@@ -54,7 +66,7 @@ class Package(Component):
 
     def convert_to_pdf(self, input_path, output_path):
         if FPDF is None:
-            raise ImportError("Sistemde 'fpdf2' kurulu değil!")
+            raise ImportError("Sistemde 'fpdf2' kurulu degil! (Lutfen 'pip install fpdf2' calistirin)")
 
         pdf = FPDF()
         pdf.add_page()
@@ -69,10 +81,9 @@ class Package(Component):
 
     def run(self):
         try:
-            if not self.input_file_path or not os.path.exists(self.input_file_path):
-                raise FileNotFoundError(f"Gelen veriden gecerli dosya yolu bulunamadi: {self.input_file_path}")
+            if not self.input_file_path or not os.path.exists(str(self.input_file_path)):
+                raise FileNotFoundError(f"Kablodan gelen veriden dosya yolu cikarilamadi veya dosya yok: {self.input_file_path}")
 
-            # Hedef klasör yoksa oluştur
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path, exist_ok=True)
 
@@ -84,7 +95,7 @@ class Package(Component):
             
             self.output_message = {
                 "status": "Success",
-                "message": f"PDF basariyla locale kaydedildi: {output_path}"
+                "message": f"PDF locale kaydedildi: {output_path}"
             }
             print(f"\n🦅 PDF CONVERTER BAŞARILI: {output_path}\n", flush=True)
 
