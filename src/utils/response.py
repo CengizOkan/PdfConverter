@@ -2,12 +2,12 @@ from sdks.novavision.src.helper.package import PackageHelper
 from components.Package.src.models.PackageModel import (
     PackageModel, PackageConfigs, ConfigExecutor, 
     ExecutorOutputs, PackageResponse, PackageExecutor, 
-    OutputFile
+    OutputMessage
 )
 
 def build_response(context):
-    outputFile = OutputFile(value=context.output_file_path)
-    outputs = ExecutorOutputs(outputFile=outputFile)
+    outputMessage = OutputMessage(value=context.output_message)
+    outputs = ExecutorOutputs(outputMessage=outputMessage)
     
     packageResponse = PackageResponse(outputs=outputs)
     packageExecutor = PackageExecutor(value=packageResponse)

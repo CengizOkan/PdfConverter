@@ -1,27 +1,36 @@
 from typing import Optional, Union, Literal, Dict, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# Giriş yapısını dict (object) kabul edecek şekilde güncelledik
+# Sol taraftan (Data Feed'den) gelecek Dict verisi
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
     value: Dict[str, Any] 
     type: str = "object"
 
-class OutputFile(Output):
-    name: Literal["outputFile"] = "outputFile"
-    value: str = ""
+# Sağ panelden istenecek kayıt yeri
+class ConfigSavePath(Config):
+    name: Literal["savePath"] = "savePath"
+    value: str = "/home/cengizokan/Downloads/"
     type: str = "string"
     class Config:
-        title = "Çevrilen PDF Dosyasının Yolu"
+        title = "Kaydedilecek Klasör (Local Path)"
+
+# İşlem sonucunu gösterecek durum mesajı
+class OutputMessage(Output):
+    name: Literal["outputMessage"] = "outputMessage"
+    value: dict
+    type: str = "object"
+    class Config:
+        title = "Durum Mesajı"
 
 class ExecutorInputs(Inputs):
     inputFile: InputFile
 
 class ExecutorConfigs(Configs):
-    pass 
+    savePath: ConfigSavePath # Hedef klasör ayarını ekledik
 
 class ExecutorOutputs(Outputs):
-    outputFile: OutputFile
+    outputMessage: OutputMessage
 
 class PackageRequest(Request):
     inputs: ExecutorInputs
