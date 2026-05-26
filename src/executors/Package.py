@@ -18,26 +18,23 @@ class Package(Component):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
         
-        # Pydantic çökmelerini engellemek için try-except bloğu
         try:
             self.request.model = PackageModel(**(self.request.data))
         except Exception as e:
-            print(f"Model Yükleme Hatası: {e}", flush=True)
+            print(f"Model Yukleme Hatasi: {e}", flush=True)
         
         self.input_file_path = None
-        self.save_path = "/home/cengizokan/Downloads/"
+        self.save_path = "/home/cengizokan/Downloads/" # Varsayılan güvenlik yolu
         self.output_message = {}
 
-        # 1. Girdi verisini güvenle okuma
+        # 1. Girdi verisini kablodan okuma
         try:
             if self.request.model and self.request.model.configs.executor.value.inputs:
                 incoming_data = self.request.model.configs.executor.value.inputs.inputFile.value
                 
-                # Liste formatındaysa
                 if isinstance(incoming_data, list) and len(incoming_data) > 0:
                     incoming_data = incoming_data[0]
                     
-                # Sözlük formatındaysa
                 if isinstance(incoming_data, dict):
                     self.input_file_path = (
                         incoming_data.get("filePath") or 
@@ -50,17 +47,15 @@ class Package(Component):
                             if isinstance(val, str) and (val.startswith("/") or val.startswith("C:\\")):
                                 self.input_file_path = val
                                 break
-                # String formatındaysa
                 elif isinstance(incoming_data, str):
                     self.input_file_path = incoming_data
         except Exception:
             pass
             
-        # 2. Kayıt yerini güvenle okuma
+        # 2. Kayıt Yerini Doğrudan Ana Ayarlardan (Kök Dizinden) Okuma!
         try:
-            if self.request.model and self.request.model.configs.executor.value.configs:
-                if self.request.model.configs.executor.value.configs.savePath:
-                    self.save_path = self.request.model.configs.executor.value.configs.savePath.value
+            if self.request.model and self.request.model.configs:
+                self.save_path = self.request.model.configs.savePath.value
         except Exception:
             pass
 
@@ -86,7 +81,7 @@ class Package(Component):
     def run(self):
         try:
             if not self.input_file_path or not os.path.exists(str(self.input_file_path)):
-                raise FileNotFoundError(f"Geçerli bir dosya yolu bulunamadı: {self.input_file_path}")
+                raise FileNotFoundError(f"Gecerli bir dosya yolu bulunamadi: {self.input_file_path}")
 
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path, exist_ok=True)
