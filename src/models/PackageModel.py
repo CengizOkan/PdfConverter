@@ -1,13 +1,13 @@
 from typing import Optional, Union, Literal, Any
 from sdks.novavision.src.base.model import Package, Inputs, Configs, Outputs, Response, Request, Output, Config
 
-# Sol taraftan gelecek giriş kablosu
+# --- 1. Sol Kablo Ucu (Giriş) ---
 class InputFile(Config):
     name: Literal["inputFile"] = "inputFile"
-    value: Any = None  # UI boş gönderirse çökmemesi için eklendi
+    value: Any = {}  # Liste veya sözlük gelse bile çökmeyi engeller
     type: str = "object"
 
-# Sağ panelde görünecek kayıt yeri
+# --- 2. Sağ Panel Ayarı (Klasör Yolu) ---
 class ConfigSavePath(Config):
     name: Literal["savePath"] = "savePath"
     value: str = "/home/cengizokan/Downloads/"
@@ -15,7 +15,7 @@ class ConfigSavePath(Config):
     class Config:
         title = "Kaydedilecek Klasör"
 
-# İşlem sonucu mesajı
+# --- 3. Sağ Kablo Ucu (Çıkış Durumu) ---
 class OutputMessage(Output):
     name: Literal["outputMessage"] = "outputMessage"
     value: dict = {}
@@ -23,24 +23,24 @@ class OutputMessage(Output):
     class Config:
         title = "Durum Mesajı"
 
+# --- 4. Portların Zorunlu Kılınması (Kabloları Geri Getiren Kısım) ---
 class ExecutorInputs(Inputs):
-    inputFile: Optional[InputFile] = None
+    inputFile: InputFile  # Optional ibaresi kaldırıldı, sol port geri gelecek
 
 class ExecutorConfigs(Configs):
-    savePath: Optional[ConfigSavePath] = None
+    savePath: ConfigSavePath
 
 class ExecutorOutputs(Outputs):
-    outputMessage: Optional[OutputMessage] = None
+    outputMessage: OutputMessage  # Optional ibaresi kaldırıldı, sağ port geri gelecek
 
 class PackageRequest(Request):
-    inputs: Optional[ExecutorInputs] = None
-    configs: Optional[ExecutorConfigs] = None
+    inputs: ExecutorInputs
+    configs: Optional[ExecutorConfigs]
     class Config:
-        # HATA BURADAYDI: Sadece string olmalı. UI motoru config'i otomatik tanır.
         json_schema_extra = {"target": "inputs"}
 
 class PackageResponse(Response):
-    outputs: Optional[ExecutorOutputs] = None
+    outputs: ExecutorOutputs
 
 class PackageExecutor(Config):
     name: Literal["PdfConverter"] = "PdfConverter"
